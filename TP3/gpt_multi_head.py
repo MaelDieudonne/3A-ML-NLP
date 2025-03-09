@@ -187,7 +187,6 @@ class BigramLanguageModel(nn.Module):
 
         # Add layer normalization after the blocks
         self.ln_final = nn.LayerNorm(n_embd)
-
         self.lm_head = nn.Linear(n_embd, vocab_size)
 
     def forward(self, idx, targets=None):
