@@ -6,6 +6,12 @@
 .txt
 .lst
 .bin
+.png
 
-/data/
-/output/
+*checkpoint.ipynb
+*jupyterlab-workspace
+
+.DS_Store
+
+mini-project/data/
+mini-project/output/

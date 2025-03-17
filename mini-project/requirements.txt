@@ -1,0 +1,15 @@
+emoji
+ipywidgets
+matplotlib
+numpy
+pandas
+psutil
+requests
+scikit-learn
+seaborn
+tensorflow
+tensorflow-hub
+tensorflow-text
+torch
+tqdm
+transformers
