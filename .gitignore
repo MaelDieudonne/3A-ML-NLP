@@ -8,6 +8,8 @@
 .bin
 .png
 
+.env
+
 *checkpoint.ipynb
 *jupyterlab-workspace
 
