@@ -3,4 +3,4 @@ Applied work for the [Machine Learning for Natural Language Processing](https://
 - TP1: zero-shot classification
 - TP2: embeddings
 - TP3: transformers
-- project: sentiment analysis on IMDB movie reviews
+- Mini-project: sentiment analysis on IMDb movie reviews
