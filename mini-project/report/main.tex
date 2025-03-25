@@ -34,7 +34,7 @@
 \usepackage{multirow}
 
 
-\title{Formatting Instructions For NeurIPS 2024}
+\title{Sentiment Analysis on Movie Reviews [Mini]}
 
 
 \author{
@@ -49,11 +49,7 @@
 \maketitle
 
 \begin{abstract}
-  The abstract paragraph should be indented \nicefrac{1}{2}~inch (3~picas) on
-  both the left- and right-hand margins. Use 10~point type, with a vertical
-  spacing (leading) of 11~points. The word \textbf{Abstract} must be centered,
-  bold, and in point size 12. Two line spaces precede the abstract. The abstract
-  must be limited to one paragraph.
+  Sentiment analysis seeks to understand the subjectivity expressed in written documents. Large language models offer powerful tools for sentiment analysis, with a unique ability to capture context and disentangle sentiment from other features. I have reviewed many tutorials on fine-tuning BERT and RoBERTa, but none explicitly addressed its impact on accuracy. Its accuracy falls between zero-shot classification with optimized prompting and SiEBERT, highlighting that despite its capabilities and the use of advanced prompting techniques, specialized encoders can still outperform it. GPT-3.5 Turbo shows the opposite trend, excelling on negative reviews.
 \end{abstract}
 
 
@@ -63,43 +59,38 @@ Sentiment analysis seeks to understand the subjectivity expressed in written doc
 
 Sentiment analysis has become an active research area with the advent of Web 2.0, offering people numerous opportunities to express themselves in a publicly traceable manner \citep{stine_sentiment_2019}. Various stakeholders have a vested interest in their opinions:
 \begin{itemize}
-\item Marketing departments, seeking to understand brand perception and consumer opinions about products, both in absolute terms and relative to competitors.
-\item Customer service teams, identifying key factors contributing to customer satisfaction or dissatisfaction.
-\item Traders and financial analysts, using public sentiment as an early indicator of economic trends and the financial health of companies.
-\item Political actors, monitoring public perception of policies and personal image.
-\item Public health officials, assessing attitudes toward medical interventions such as vaccines.
-\item Etc.
+    \item \textbf{Marketing departments}, seeking to understand brand perception and consumer opinions about products, both in absolute terms and relative to competitors.
+    \item \textbf{Customer service teams}, identifying key factors contributing to customer satisfaction or dissatisfaction.
+    \item \textbf{Traders and financial analysts}, using public sentiment as an early indicator of economic trends and the financial health of companies.
+    \item \textbf{Political actors}, monitoring public perception of policies and personal image.
+    \item \textbf{Public health officials}, assessing attitudes toward medical interventions such as vaccines.
+    \item Etc.
 \end{itemize}
 
 The primary goal of sentiment analysis is to gain direct access to people's opinions without relying on intermediaries such as journalists or resellers, at the massive scale typical of the Internet \citep{ravi_survey_2015,hemmatian_survey_2019}.
 
-Sentiment analysis can be performed at three distinct levels. At the document level, the goal is to determine the overall sentiment of an entire document, which can be very short (e.g., product reviews). Analysis conducted at the sentence level account for potentially conflicting sentiments within the same documents. First, it distinguishes between objective (fact-based) and subjective (opinion-based) sentences. For example, a movie review may contain both plot summaries (objective) and judgments on acting performance (subjective). Then, subjective sentences are classified based on their sentiment. At the feature or aspect level, the aim is to link sentiments with their object, and sometimes the person expressing them (who feels what about the plot, for instance).
+Sentiment analysis can be performed at three distinct levels. At the \textbf{document level}, the goal is to determine the overall sentiment of an entire document, which can be very short (e.g., product reviews). Analysis conducted at the \textbf{sentence level} account for potentially conflicting sentiments within the same documents. First, it distinguishes between objective (fact-based) and subjective (opinion-based) sentences. For example, a movie review may contain both plot summaries (objective) and judgments on acting performance (subjective). Then, subjective sentences are classified based on their sentiment. At the \textbf{feature} or \textbf{aspect level}, the aim is to link sentiments with their object, and sometimes the person expressing them (who feels what about the plot, for instance).
 
 The most common output of sentiment analysis is a binary or ternary classification of the emotional tone, also known as polarity or valence: positive, negative or neutral. This classification applies to entire documents, individual subjective sentences, or specific features, depending on the level of analysis. Sentiment classification beyond polarity, aiming at identifying specific emotions like fear, anger, or happiness, is less common. This approach may have fewer applications outside of literary analysis.
 
-Sentiment analysis faces several challenges \citep{kumar_comprehensive_2023}:
+Sentiment analysis faces several important challenges \citep{kumar_comprehensive_2023}:
 \begin{itemize}
-    \item Domain dependance, when words carry different meanings in different contexts (e.g., tears may indicate laughter or sadness).
-    \item Polarity shift, when words or punctuation marks change the valence of a sentiment (e.g., not, but, only).
-    \item Sarcasm, when the expressed sentiments oppose the actual sentiments.
-    \item Order dependance, when the valence of a word changes with its position in the sentence (e.g., with comparisons).
-    \item Unconventional expressions like idioms, slang, emojis, or multiple punctuations marks.
-Implicit sentiment, when sentiments are expressed without explicit sentiment words (e.g., “I know real Indian food and this wasn’t it”).
+    \item \textbf{Domain dependance}, when words carry different meanings in different contexts (e.g., tears may indicate laughter or sadness).
+    \item \textbf{Polarity shift}, when words or punctuation marks change the valence of a sentiment (e.g., not, but, only).
+    \item \textbf{Sarcasm}, when the expressed sentiments oppose the actual sentiments.
+    \item \textbf{Order dependance}, when the valence of a word changes with its position in the sentence (e.g., with comparisons).
+    \item \textbf{Unconventional expressions} like idioms, slang, emojis, or multiple punctuations marks.
+Implicit sentiment, when sentiments are expressed without explicit sentiment words (e.g., \enquote{I know real Indian food and this wasn’t it}).
 \end{itemize}
 
 
 \section{State of the art}
 
-Three main approaches have been applied to sentiment analysis \citep{hartmann_more_2023}:
-\begin{enumerate}
-    \item Lexicon-based
-    \item Classifiers
-    \item Transformers
-\end{enumerate}
+Three main approaches have been applied to sentiment analysis, making use of lexicon-based models, classifiers, and transformers \citep{hartmann_more_2023}.
 
 \subsection{Lexicon-based}
 
-This approach relies on a dictionary assigning positive or negative labels to words, to classify documents based on the most frequent label. A well-known example is VADER, which was developed to analyze the sentiments of reviews published on social media \citep{hutto_vader_2014}. It relies on sentiment lexicon of 7520 words including slang, emoticons, and acronyms, where each word is associated with a score on a valence scale (e.g., -2.2 for ':(', 0.9 for 'okay' or 3.1 for 'good'). This lexicon was obtained by submitting a list of 9,000 words to human raters recruited on the Amazon Mechanical Turk. Each word was rated by 10 different persons on a 9-point Likert scale, and kept in the lexicon if its average rating was non-null. VADER also applies rules that adjust sentiment scores based on punctuation, capitalization, and specific words (e.g., 'but' shifts sentiment, while '!!' amplifies intensity). Finally, VADER calculates the proportion of text conveying positive, negative, or neutral sentiment.
+This approach relies on a dictionary assigning positive or negative labels to words, to classify documents based on the most frequent label. A well-known example is VADER, which was developed to analyze the sentiments of reviews published on social media \citep{hutto_vader_2014}. It relies on sentiment lexicon of 7,520 words including slang, emoticons, and acronyms, where each word is associated with a score on a valence scale (e.g., -2.2 for \enquote{:(}, 0.9 for \enquote{okay} or 3.1 for \enquote{good}). This lexicon was obtained by submitting a list of 9,000 words to human raters recruited on the Amazon Mechanical Turk. Each word was rated by 10 different persons on a 9-point Likert scale, and kept in the lexicon if its average rating was non-null. VADER also applies rules that adjust sentiment scores based on punctuation, capitalization, and specific words (e.g., \enquote{but} shifts sentiment, while \enquote{!!} amplifies intensity). Finally, VADER calculates the proportion of text conveying positive, negative, or neutral sentiment.
 
 This approach has several limits. Lexicons are complex to build, as they require a lot of human input, so they tend to remain small and not updated very often. They also lack flexibility, being unable to handle words they do not include. This can be especially problematic when processing content drawn from the Internet, which may include words written incorrectly or with evolving meaning. Since the analysis occurs at the word level, it lacks contextual understanding. As a result, the performance of lexicon-based sentiment analysis is rather low.
 
@@ -115,20 +106,20 @@ However, classifiers have limitations. They require labeled datasets to train th
 
 The third approach uses transformer models, which apply attention mechanisms to word embeddings—low-dimensional, dense representations of text. There are two main types of models sharing the same basic architecture:
 \begin{itemize}
-    \item Encoder/decoder (a.k.a. unidirectional or autoregressive transformers): These models consider only past and present tokens, with the aim of predicting future tokens (which are removed from through causal masking). They are easily trained by comparing predicted and actual tokens. The reference architecture for this type is GPT \citep{radford_improving_2018,radford_language_2019}.
-    \item Encoder-only (a.k.a. bidirectional transformers): These models consider all tokens in the context window, with the aim of understanding text. They are trained by masking a fraction of input tokens (usually 15\%) before feeding them to the model, then predicting the masked tokens. Additional training strategies include predicting the order of two sequences in the training corpus or generating permutations of tokens within sentences. Lacking decoders, these models output embeddings instead of tokens. These embeddings can be analyzed directly, e.g., through cosine similarity to identify semantically similar tokens, which is essentially the principle of zero-shot classification. Alternatively, a custom output head can be added and fine-tuned for a specific task. The reference architecture of encoders is BERT \citep{devlin_bert_2019}.
+    \item \textbf{Encoder/decoder} (a.k.a. unidirectional or autoregressive transformers): these models consider only past and present tokens, with the aim of predicting future tokens (which are removed from through causal masking). They are easily trained by comparing predicted and actual tokens. The reference architecture for encoders/decoders is GPT \citep{radford_improving_2018,radford_language_2019}.
+    \item \textbf{Encoder-only} (a.k.a. bidirectional transformers): these models consider all tokens in the context window, with the aim of understanding text. They are trained by masking a fraction of input tokens (usually 15\%) before feeding them to the model, then predicting the masked tokens. Additional training strategies include predicting the order of two sequences in the training corpus or generating permutations of tokens within sentences. Lacking decoders, these models output embeddings instead of tokens. These embeddings can be analyzed directly, e.g., through cosine similarity to identify semantically similar tokens, which is essentially the principle of \textbf{zero-shot classification}. Alternatively, a custom output head can be added and fine-tuned for a specific task. The reference architecture of encoders is BERT \citep{devlin_bert_2019}.
 \end{itemize}
 
-Large Language Models offer powerful tools for sentiment analysis, with a unique ability to capture context and disentangle sentiment from other features. They excel in complex tasks, particularly aspect-based sentiment analysis. However, they have several limitations. They are resource-intensive, especially during pre-training. As a result, the most common approach is to use pre-trained encoders models, either directly or for fine-tuning. A less frequent approach is to run GPT models locally or access them via APIs. One challenge with transformers is their opacity; what makes them so effective remains difficult to assess. Lastly, they may not outperform traditional classifiers on short documents \citep{ghatora_sentiment_2024}.
+Large language models offer powerful tools for sentiment analysis, with a unique ability to capture context and disentangle sentiment from other features. They excel in complex tasks, particularly aspect-based sentiment analysis. However, they have several limitations. They are resource-intensive, especially during pre-training. As a result, the most common approach is to use pre-trained encoders models, either directly or for fine-tuning. A less frequent approach is to run GPT models locally or access them via APIs. Another challenge with transformers is their opacity; what makes them so effective remains difficult to assess. Lastly, they may not outperform traditional classifiers on short documents \citep{ghatora_sentiment_2024}.
 
 
 \section{Data}
 
-Movie reviews have become a popular benchmark for sentiment analysis due to their availability and size: they tend to be longer and more accessible online compared to typical product reviews or social media posts. The current dataset was constructed and publicized by Maas et al. \citep{maas_learning_2011}. It contains 50,000 reviews from the IMDb website, along with the corresponding rating proposed by theirs authors on a 1-10 scale. Reviews are labeled as negative when associated with ratings \( \leq 4 \), as positive when associated with ratings \( \geq 4 \). Neutral ratings (5 and 6) were eliminated to focus on polarized reviews. To eliminate bias, no more than 30 reviews per movie were included, and an even number of positive and negative reviews were included, so that randomly guessing yields 50\% accuracy. To minimize bias, no more than 30 reviews per movie were included, and an equal number of positive and negative reviews were selected, ensuring that random guessing would yield 50\% accuracy. The dataset is split into training and test sets of equal size (25,000 reviews each) 
+Movie reviews have become a popular benchmark for sentiment analysis due to their availability and size: they tend to be longer and more accessible online compared to typical product reviews or social media posts. The current dataset was constructed and publicized by Maas et al. \citep{maas_learning_2011}. It contains 50,000 reviews from the IMDb website, along with the corresponding rating proposed by theirs authors on a 1-10 scale. Reviews are labeled as negative when associated with ratings below 5, as positive when associated with ratings above 6. Neutral ratings (5 and 6) were eliminated to focus on polarized reviews. To minimize bias, no more than 30 reviews per movie were included, and an equal number of positive and negative reviews were selected, ensuring that random guessing would yield 50\% accuracy. The dataset is split into training and test samples of equal size (25,000 reviews each) 
 \footnote{The dataset also includes an additional 50,000 unlabeled reviews without ratings. These can be used for unsupervised learning but not to measure performance.}
 .
 
-The task, therefore, is to perform binary classification between positive and negative sentiments at the document level.
+\textbf{The task, therefore, is to perform binary classification between positive and negative sentiments at the document level.}
 
 \subsection{Benchmarks}
 
@@ -136,14 +127,14 @@ Performances are assessed regarding accuracy, which is the most relevant metrics
 
 Several models were benchmarked on the IMDb dataset, reaching the following error rates on the test sample \citep{stine_sentiment_2019}:
 \begin{itemize}
-    \item 26.4\% for a lexicon-based model,
-	\item 12.3\% for a Lasso logistic regression,
-	\item 5.91\% for an adversarial neural network.
+    \item 26.4\% for a \textbf{lexicon-based model},
+	\item 12.3\% for a \textbf{Lasso logistic regression},
+	\item 5.91\% for an \textbf{adversarial neural network}.
 \end{itemize}
 
-The current best model (according to the \href{https://paperswithcode.com/sota/sentiment-analysis-on-imdb}{Papers with Code leaderboard}) is a fine-tuned BERT model named LlamBERT (Csanády et al., 2024) with an error rate of 3.32\%. It is followed closely by an auto-regressive transformer named XLNet (Yang et al., 2019) with an error rate of 3.79\%.
+The current best model (according to the \href{https://paperswithcode.com/sota/sentiment-analysis-on-imdb}{Papers with Code leaderboard}) is a \textbf{fine-tuned BERT} model named LlamBERT (Csanády et al., 2024) with an error rate of 3.32\%. It is followed closely by an \textbf{auto-regressive transformer} named XLNet (Yang et al., 2019) with an error rate of 3.79\%.
 
-Transformers are significantly outperforming lexicon-based models and traditional classification algorithms. This is not surprising, as they leverage much more information, being trained on corpora orders of magnitude larger than the IMDb dataset. However, they seem to have reached a plateau, with only marginal improvements over the last 6 years. However, they appear to have reached a plateau, with only marginal improvements over the past six years. Additionally, they are difficult to replicate due to heavy hardware requirements. It seems clearly out of my reach to improve upon or even replicate these models.
+Transformers are significantly outperforming lexicon-based models and traditional classification algorithms. This is not surprising, as they leverage much more information, being trained on corpora orders of magnitude larger than the IMDb dataset. However, they seem to have reached a plateau, with only marginal improvements over the last 6 years. Additionally, they are difficult to replicate due to heavy hardware requirements. It seems clearly out of my reach to improve upon these models.
 
 \section{Experiment}
 
@@ -151,7 +142,8 @@ Transformers are significantly outperforming lexicon-based models and traditiona
 
 Instead, I have set out to investigate the possibility that performance is plateauing due to limitations of the dataset, with two hypotheses in mind.
 
-(1) The rating is not a good proxy for the overall sentiment of reviews. See a few example of reviews labelled as positive, while their tone is quite ambiguous:
+(1) The way reviews are labeled means that the prediction task is not based on the sentiment conveyed by reviews, but on the associated ratings (below 5 or above 6). However, these ratings may not always be a reliable proxy for the overall sentiment of reviews, especially when they are not strongly polarized. Below are a few examples of reviews labeled as positive, despite their tone being quite ambiguous:
+
 \begin{displayquote}
 Definitely a movie that could've been seen on DVD. (rating 7)
 
@@ -163,7 +155,8 @@ The theme is controversial and the depiction of the hypocritical and sexually st
 \end{displayquote}
 The working hypothesis here is that the error rate is higher for models closer to neutral, especially with a rating of 7.
 
-(2) Document level is not appropriate, because many reviews express conflicting opinions regarding different aspects of the films.
+(2) The document-level approach is not ideal, as many reviews express conflicting opinions about different aspects of a movie, making it difficult to assign a single, reliable sentiment.
+
 \begin{displayquote}
 Some things and some actions are very true, but some other stuff is just way off the mark. (…) Delhi is complicated. India is complicated. The director tries to simplify both. And fails pretty miserably at that. (…) But the chemistry between the leads is palpable. (rating 8)
 
@@ -173,7 +166,7 @@ The working hypothesis here is the lengthier the reviews, the more likely they a
 
 \subsection{Models}
 
-My goal was to compare several models to assess their behavior in relation to ratings and review lengths, while striving to get as close as possible to the state-of-the-art (SOTA) performance. I chose RoBERTa Large as my base model \citep{liu_roberta_2019}, since the SOTA model is built upon it and it also performs really well on its own (outperforming XLNet, which serves as the basis for the second SOTA model) 
+My goal was to compare several models to assess their behavior in relation to ratings and review lengths, while striving to get as close as possible to the SOTA performance. I chose RoBERTa Large \citep{liu_roberta_2019} as my base model , since the SOTA model is built upon it and it also performs really well on its own (outperforming XLNet, which serves as the basis for the second SOTA model) 
 \footnote{It could have been interesting to use ModernBERT \citep{warner_smarter_2024} instead, which is more recent, but I discovered its existence too late.}
 .
 
@@ -201,20 +194,20 @@ This classification head has 1,577,474 trainable parameters in total, compared w
 
 Parameters from the base model were frozen to preserve the knowledge acquired during pretraining and avoid excessive computation times. The fine-tuning was conducted with the following settings:
 \begin{itemize}
-    \item 12 epochs, with performance evaluation on the entire test set after each epoch to detect overfitting as soon as possible.
+    \item 12 epochs, with performance evaluation on the entire test sample after each epoch to detect overfitting as soon as possible.
 	\item An \texttt{AdamW} optimizer with a learning rate of 1e-4, \texttt{weight\_decay} of 0.03, and \texttt{epsilon} set to 1e-6.
     \item A cosine learning rate scheduler with 10\% warmup steps.
 \end{itemize}
 
 \subsubsection{SOTA fine-tuned RoBERTa for sentiment analysis}
 
-To assess the effectiveness of my fine-tuning, I compared it not only to the baseline performance but also to the current SOTA fine-tuned RoBERTa for sentiment analysis, provided it was not trained on the IMDb test set. This model is SiEBERT \citep{hartmann_more_2023}. Its architecture is not specified, as the authors do not describe it and have not released their code. It is unclear whether SiEBERT uses a custom classification head or the default untrained head provided by RoBERTa, which consists of two dense layers (the first mapping to a hidden space of the same size as the RoBERTa output, the second to a binary space). The training corpus is also unspecified; the authors only mention using all publicly available two-class sentiment datasets they could identify, excluding their training subset.
+To assess the effectiveness of my fine-tuning, I compared it not only to the baseline performance but also to the current SOTA fine-tuned RoBERTa for sentiment analysis, which is SiEBERT \citep{hartmann_more_2023}. Its architecture is not specified, as the authors do not describe it and have not released their code. It is unclear whether SiEBERT uses a custom classification head or the default untrained head provided by RoBERTa, which consists of two dense layers (the first mapping to a hidden space of the same size as the RoBERTa output, the second to a binary space). The training corpus is also unspecified; the authors only mention using all publicly available two-class sentiment datasets they could identify, excluding their training subset.
 
 SiEBERT is available in a HuggingFace pipeline, which I used.
 
 \subsubsection{GPT 3.5 turbo}
 
-I decided to add a comparison with ChatGPT, which has shown promising results for sentiment analysis but has never been applied to the IMDb dataset \citep{wang_is_2024}. I drafted a first prompt based on the principle of few-shot prompting, which consists in including a few examples before the document to classify. This has been observed to improve the performance of sentiment analysis significantly—an effect known as in-context learning \citep{brown_language_2020}. I then submitted this prompt to ChatGPT, asking for improvements, and received the suggestion of adding detailed instructions. Prompts were constructed as follows for each review of the test dataset:
+I decided to add a comparison with ChatGPT, which has shown promising results for sentiment analysis but has never been applied to the IMDb dataset \citep{wang_is_2024}. I drafted a first prompt based on the principle of few-shot prompting, which consists in including a few examples before the document to classify. This has been observed to improve the performance of sentiment analysis significantly—an effect known as in-context learning \citep{brown_language_2020}. I then submitted this prompt to ChatGPT, asking for improvements, and received the suggestion of adding detailed instructions. Prompts were constructed as follows for each review of the test sample:
 
 \begin{displayquote}
 Here is an example of a positive movie review, associated with a rating of 10:
@@ -227,7 +220,7 @@ Here is an example of a negative movie review, associated with a rating of 2:
 
 Now, consider the following review. Based on its content, is the sentiment of the review positive or negative? Answer with a single word.
 
-*[ \textit{<review to classify from the test set>} ]*
+*[ \textit{<review to classify from the test sample>} ]*
 
 Instructions:
 
@@ -238,9 +231,9 @@ Instructions:
 - Focus on the general tone of the review as a whole, not isolated statements or minor contradictions.
 \end{displayquote}
 
-I queried ChatGPT through the OpenAI API, which was terribly slow, averaging 7 seconds per call. I chose GPT 3.5 Turbo as the best compromise between cost and performance. At \$0.5 per million input tokens and \$1.5 per million output tokens, with 25,582,485 input tokens from building the prompt and 25,000 expected output tokens, the estimated cost was \$12.83.
+I queried ChatGPT through the OpenAI API. I chose GPT 3.5 Turbo as the best compromise between cost and performance. At \$0.5 per million input tokens and \$1.5 per million output tokens, with 25,582,485 input tokens from building the prompt and 25,000 expected output tokens, the estimated cost was \$12.83.
 
-An inherent challenge with this approach is data leakage. There is a high likelihood that the IMDb test set was included in GPT-3.5 Turbo's training corpus, which could lead to overestimated performance, as it may not be working with truly unseen data. The solution would have been to build a new dataset by scrapping reviews published after the cutoff date of GPT 3.5 Turbo, which is September 2021, but this would have added significant complexity to the project. Instead, I assumed that the IMDb dataset is small enough to be diluted in the larger training corpus of GPT-3.5 Turbo, making significant memorization unlikely.
+An inherent challenge with this approach is data leakage. There is a high likelihood that the IMDb test sample was included in GPT-3.5 Turbo's training corpus, which could lead to overestimated performance, as it may not be working with truly unseen data. The solution would have been to build a new dataset by scrapping reviews published after the cutoff date of GPT 3.5 Turbo, which is September 2021, but this would have added significant complexity to the project. Instead, I assumed that the IMDb dataset is small enough to be diluted in the larger training corpus of GPT-3.5 Turbo, making significant memorization unlikely.
 
 \subsection{Data preprocessing}
 
@@ -255,17 +248,17 @@ Text was cleaned consistently across all models to ensure comparability of their
 
 \subsection{Data}
 
-Two characteristics of the dataset are not mentioned in the documentation but crucial nonetheless.
+Two characteristics of the dataset are not mentioned in the documentation but nonetheless crucial.
 \begin{enumerate}
     \item A cursory examination suggests that movies are different in each dataset, even if they share the same id. This is excellent for preventing data leakage between train and test samples.
 	\item All reviews goes in pair, with each movie having exactly one positive and one negative review. This forbids the models from learning non-sentiment-related features (e.g., related to the plot of a movie having overwhelmingly positive reviews in the dataset).
 \end{enumerate}
 
-The reviews are highly polarized, with nearly half of the dataset consisting of ratings of 1 or 10. The distribution of ratings is almost identical in both the train and test datasets. Most reviews are relatively short, but there is a long tail in the distribution of review lengths. Some reviews are exceedingly long, with a maximum of 2,459 words (for an average of 231 words in the train dataset, 223 in the test dataset). Review length and ratings are almost uncorrelated, with a Pearson correlation coefficient of 0.0148. This indicates that my two hypotheses can be tested independently.
+The reviews are highly polarized, with nearly half of the dataset consisting of ratings of 1 or 10. The distribution of ratings is almost identical in both the train and test samples. Most reviews are relatively short, but there is a long tail in the distribution of review lengths. Some reviews are exceedingly long, with a maximum of 2,459 words (for an average of 231 words in the train sample, 223 in the test sample). Review length and ratings are almost uncorrelated, with a Pearson correlation coefficient of 0.0148. This indicates that my two hypotheses can be tested independently.
 
 \subsection{Candidate Labels for Zero-Shot classification with RoBERTa}
 
-The initial run with 'positive' and 'negative' as candidate labels yielded relatively low accuracy. To improve performance, I experimented with more informative candidate labels. The best results were achieved using 'good movie' and 'bad movie' as labels, which resulted in an improvement of nearly 7 percentage points in accuracy compared to the 'positive' and 'negative' labels.
+The initial run with \enquote{positive} and \enquote{negative} as candidate labels yielded relatively low accuracy. To improve performance, I experimented with more informative candidate labels. The best results were achieved using \enquote{good movie} and \enquote{bad movie} as labels, which resulted in an improvement of nearly 7 percentage points in accuracy compared to the \enquote{positive} and \enquote{negative} labels (see Table~\ref{tab:labels_zero_shot}).
 
 \begin{table}
   \caption{Performance of various candidate labels for zero-shot classification with RoBERTa}
@@ -273,7 +266,7 @@ The initial run with 'positive' and 'negative' as candidate labels yielded relat
   \centering
   \begin{tabular}{lc}
     \toprule
-    Candidate Labels & Accuracy \\
+    \textbf{Candidate Labels} & \textbf{Accuracy} \\
     \midrule
     positive sentiment / negative sentiment & 0.83056 \\
     positive / negative & 0.85908 \\
@@ -287,7 +280,7 @@ The initial run with 'positive' and 'negative' as candidate labels yielded relat
 
 \subsection{Truncation}
 
-RoBERTa models have a context length of 512 tokens, but many reviews are longer than that. The easiest solution is to truncate them, even though that means loosing part of the information on their overall sentiment. This truncation can be made from the right, keeping the end beginning of sequences, or from the left, keeping the end of input sequences. This could have significant consequences depending on the order in which information are presented in the reviews (e.g., if users always start with positive aspects, and always end with negative aspects). Left-side truncation yielded marginally better results (using 'good movie' and 'bad movie' as candidate labels for RoBERTa).
+RoBERTa models have a context length of 512 tokens, but many reviews are longer than that. The easiest solution is to truncate them, even though that means loosing part of the information on their overall sentiment. This truncation can be made from the right, keeping the end beginning of sequences, or from the left, keeping the end of input sequences. This could have significant consequences depending on the order in which information is presented in the reviews (e.g., if users always start with positive aspects, and always end with negative aspects).
 
 \begin{table}
   \caption{Effects of truncation side on performance}
@@ -295,7 +288,7 @@ RoBERTa models have a context length of 512 tokens, but many reviews are longer 
   \centering
   \begin{tabular}{lcc}
     \toprule
-    Model & Left side & Right size \\
+    \textbf{Model} & \textbf{Left side} & \textbf{Right size} \\
     \midrule
     RoBERTa & 0.9171 & 0.9160 \\
     SiEBERT & 0.9573 & 0.9559 \\
@@ -303,13 +296,13 @@ RoBERTa models have a context length of 512 tokens, but many reviews are longer 
   \end{tabular}
 \end{table}
 
-This could be explained by the tendency of some users to summarize their sentiment at the end of their reviews: such summaries would be lost with right-truncation, erasing important information. Although the overall effect is really tenuous, I retained left-side truncation for the fine-tuned RoBERTa model. It was also used in the previous comparison between candidate labels.
+Left-side truncation yielded marginally better results (using \enquote{good movie} and \enquote{bad movie} as candidate labels for RoBERTa, see Table~\ref{tab:truncation}). This could be explained by the tendency of some users to summarize their sentiment at the end of their reviews: such summaries would be lost with right-truncation, erasing important information. Although the overall effect is really tenuous, I retained left-side truncation for the fine-tuned RoBERTa model. It was also used in the previous comparison between candidate labels.
 
 \subsection{Fine-tuning}
 
-It was done on a MacBook Pro with an M2 Max equipped with 38 GPU cores and 64 GB of shared memory, using the MPS backend of PyTorch. Its performance significantly outpaced the 16 GB Tesla T4 available in the Datalab. Fine-tuning took approximately 1 hour per epoch (inference time was obviously much lower but still notable: zero-shot classification with RoBERTa took about 30 minutes, sentiment analysis with SiEBERT about 20 minutes).
+It was done on a MacBook Pro with an M2 Max equipped with 38 GPU cores and 64 GB of shared memory, using the MPS backend of PyTorch. Its performance significantly outpaced the 16 GB Tesla T4 available in the Datalab. Fine-tuning took approximately 1 hour per epoch (inference time was obviously much lower but still notable: zero-shot classification with RoBERTa took about 30 minutes, sentiment analysis with SiEBERT about 20 minutes). Results are presented in Figures~\ref{fig:roberta-learning-1} and~\ref{fig:roberta-learning-2}.
 
-During the first training run, train and test losses improved simultaneously until the final (12\textsuperscript{th}) epoch. I thus performed an additional training run up to 20 epochs, as the model was still learning. I then extended the training to 20 epochs, as the model was still learning. Although test loss continued to decrease, the performance gains were clearly plateauing, suggesting that further training would likely yield negligible improvements. As a result, I decided to stop training at that point.
+During the first training run, train and test losses improved simultaneously until the final (12\textsuperscript{th}) epoch. I then extended the training to 20 epochs, as the model was still learning. Although test loss continued to decrease, the performance gains were clearly plateauing, suggesting that further training would likely yield negligible improvements. As a result, I decided to stop training at that point.
 
 \begin{figure}
   \centering
@@ -325,9 +318,9 @@ During the first training run, train and test losses improved simultaneously unt
   \label{fig:roberta-learning-2}
 \end{figure}
 
-The behavior of the batch train loss can be attributed to the fact that test batches were not shuffled, unlike the training batches. It is quite obvious that some batches are more difficult to classify than others. However, since this only affects the test sample, it does not interfere with the training process. What is interesting, nonetheless, is that the difference between test batches continues to grow with each epoch, as if the model was improving for certain batches while plateauing on others.
+The behavior of the batch test loss can be attributed to the fact that test batches were not shuffled, unlike the training batches. It is quite obvious that some batches are more difficult to classify than others. However, since this only affects the validation stage, it does not interfere with the training process. What is interesting, nonetheless, is that the difference between test batches tends to grow with each epoch, as if the model was improving for certain batches while plateauing on others.
 
-Otherwise, 20 epochs seems to be quite a lot for fine-tuning, as typical values range between 3-5 epochs. This suggests that the model is converging slowly. However, the learning rate is relatively high, and warm-up steps were included, which makes that behavior somewhat perplexing (for reference, the values mentioned in the SOTA article for fine-tuning RoBERTa are 5 epochs with \texttt{lr=1e-6},  \texttt{batch\_size=16}, and \texttt{weight\_decay=0.01}) \citep{csanady_llambert_2024}. Investigating further was not possible due to the high computational cost.
+Otherwise, 20 epochs seems to be quite a lot for fine-tuning, as typical values range between 3-5 epochs. This suggests that the model is converging slowly. However, the learning rate is relatively high, and warm-up steps were included, which makes that behavior somewhat perplexing (for reference, the values mentioned in the SOTA article for fine-tuning RoBERTa are 5 epochs with \texttt{lr=1e-6},  \texttt{batch\_size=16}, and \texttt{weight\_decay=0.01} \citep{csanady_llambert_2024}). Investigating further was not possible due to the high computational cost.
 
 The effect of training is notable on accuracy, but also on classification error, which reflects the separation between predicted classes, that is, the model confidence in its own predictions. Classification error is defined as the average difference between the highest possible probability (\( =1 \)) and the highest predicted probability of each datapoint (so the more certain are the label assignments, the closer \( E \) gets to 0):
 
@@ -335,79 +328,60 @@ The effect of training is notable on accuracy, but also on classification error,
 E = \frac{1}{N} \sum_{i=1}^{N} (1 - P_{\text{max},i})
 \]
 
-The overall improvement from fine-tuning is disappointing. While accuracy progresses significantly during training—from 0.5 after the first epoch (equivalent to random guessing, as the dataset is balanced) to 0.9152 after the 20\textsuperscript{th} epoch—it still falls short of the performance achieved by the base model with zero-shot classification, which is already at 0.9158. Moreover, it remains far below the performance of SiEBERT (0.9573) and the SOTA model (0.9668).
+The overall improvement from fine-tuning is disappointing. While accuracy progresses significantly during training—from 0.5 after the first epoch (equivalent to random guessing, as the dataset is balanced) to 0.9152 after the 20\textsuperscript{th} epoch—it still falls short of the performance achieved by the base model with zero-shot classification, which is already at 0.9158. Moreover, it remains far below the performance of SiEBERT (0.9573) and the SOTA model (0.9668). A first explanation is that the IMDb dataset is too small. Indeed, SiEBERT and the SOTA model are fine-tuned on bigger datasets. But it remains puzzling that even 20 epochs of fine-tuning does not yield better performance than the base model. Another explanation is that my classification head is inadequate, possibly too complex. I tested an alternative model inspired by RoBERTa’s default classification head, consisting of only 2 dense layers with a hidden size of 512. However, the performances of this model were notably worse after 12 epochs (0.8405 accuracy vs. 0.8841 for the original model, and 0.4195 vs. 0.2735 for classification error).
 
-Several explanations can be conceived.
-\begin{enumerate}
-    \item The IMDb dataset is too small. Indeed, SiEBERT and the SOTA model are fine-tuned on bigger datasets. But it remains puzzling that even 20 epochs of fine-tuning does not yield better performance than the base model. 
-	\item My classification head is inadequate. I tested an alternative model inspired by RoBERTa’s default classification head, consisting of 2 dense layers with a hidden size of 512. However, the performances of this model were notably worse after 12 epochs (0.8405 accuracy vs. 0.8841 for the original model, and 0.4195 vs. 0.2735 for classification error).
-\end{enumerate}
-
-I am unsure what else could have been done. I have reviewed many tutorials on fine-tuning BERT and RoBERTa, but none explicitly addressed its impact on accuracy---especially in comparison to zero-shot classification with optimized prompting. Perhaps fine-tuning RoBERTa effectively is harder than it seems.
+I am unsure what else could have been done. I have reviewed many tutorials on fine-tuning BERT and RoBERTa, but none explicitly addressed its impact on accuracy---especially in comparison to zero-shot classification with optimized prompting. Perhaps fine-tuning RoBERTa \textit{effectively} is harder than it seems.
 
 \subsection{Performances}
 
-I have introduced the performance of all models except GPT-3.5 Turbo. Its accuracy falls between zero-shot classification with optimized prompting and SiEBERT, highlighting that despite its capabilities and the use of advanced prompting techniques, specialized encoders can still outperform it. It would have been valuable to explore alternative prompt engineering strategies and test other GPT models. However, this was impractical due to the cost and the API's slow speed--—averaging 8 seconds per call, resulting in over 55 hours to process the entire dataset.
+I have introduced the performance of all models except GPT-3.5 Turbo (see Table~\ref{tab:perfs_by_sentiment}). Its accuracy falls between zero-shot classification with optimized prompting and SiEBERT, highlighting that despite its capabilities and the use of advanced prompting techniques, specialized encoders can still outperform it. It would have been valuable to explore alternative prompt engineering strategies and test other GPT models. However, this was impractical due to the cost and the API's slow speed--—averaging 8 seconds per call, resulting in over 55 hours to process the entire dataset.
+
 
 \begin{table}
-  \caption{Overall performance of each model}
-  \label{tab:overall_perfs}
+  \caption{Performances of each model}
+  \label{tab:perfs_by_sentiment}
   \centering
-  \begin{tabular}{lc}
+  \begin{tabular}{lccc}
     \toprule
-    Model & Accuracy \\
+    \multirow{2}{*}{\centering \textbf{Model}} & \multicolumn{2}{c}{\textbf{Sentiment}} & \multirow{2}{*}{\centering \textbf{Average}} \\
+    \cmidrule{2-3}
+    & Negative & Positive \\
     \midrule
-    RoBERTa fine-tuned & 0.9152 \\
-    RoBERTa base & 0.9171 \\
-    GPT 3.5 Turbo & 0.9300 \\
-    SiEBERT & 0.9573 \\
+    RoBERTa fine-tuned & 0.8926 & 0.9378 & 0.9152 \\
+    RoBERTa base & 0.8710 & 0.9631 & 0.9171 \\
+    GPT & 0.9623 & 0.8978 & 0.9300 \\
+    SiEBERT & 0.9520 & 0.9626 & 0.9573 \\
     \bottomrule
   \end{tabular}
 \end{table}
 
 \subsubsection{By ratings}
 
-A clear drop in performance is evident for ratings closer to neutral, as expected. However, the models exhibit notably different behaviors. The accuracy of RoBERTa-base, fine-tuned RoBERTa, and GPT-3.5 Turbo varies with the valence of reviews. RoBERTa-base and fine-tuned RoBERTa perform significantly better on positive reviews than on negative ones, whereas GPT-3.5 Turbo shows the opposite trend, excelling on negative reviews. These models also experience the largest performance declines on their weaker side: -31.9\% for RoBERTa-base, -25.1\% for fine-tuned RoBERTa, and -25.1\% for GPT-3.5 Turbo. SiEBERT, on the other hand, maintains similar performance for both negative and positive reviews, with comparable declines near neutral ratings. This consistency makes it not only the best-performing model but also the most stable across sentiment extremes.
-
-\begin{table}
-  \caption{Performance by sentiment}
-  \label{tab:perfs_by_sentiment}
-  \centering
-  \begin{tabular}{lcc}
-    \toprule
-    \multirow{2}{*}{\centering Model} & \multicolumn{2}{c}{Sentiment} \\
-    \cmidrule{2-3}
-    & Negative & Positive \\
-    \midrule
-    RoBERTa fine-tuned & 0.892640 & 0.937760 \\
-    RoBERTa base & 0.871040 & 0.963120 \\
-    GPT & 0.962320 & 0.897760 \\
-    SiEBERT & 0.952000 & 0.962640 \\
-    \bottomrule
-  \end{tabular}
-\end{table}
-
-This sheds a new light on the effects of fine-tuning. While it improved performance on negative reviews, it reduced it to a larger extent on positive ones. As a result, fine-tuning made the model more consistent, though not better overall. Regarding the GPT model, providing more positive examples than negative one in the prompt could have helped balance its performance.
+A clear drop in performance is evident for ratings closer to neutral, as expected (see Figure~\ref{fig:accuracy-ratings}). However, the models exhibit notably different behaviors. The accuracy of RoBERTa-base, fine-tuned RoBERTa, and GPT-3.5 Turbo varies with the valence of reviews. RoBERTa-base and fine-tuned RoBERTa perform significantly better on positive reviews than on negative ones, whereas GPT-3.5 Turbo shows the opposite trend, excelling on negative reviews. These models also experience the largest performance declines on their weaker side: -31.9\% for RoBERTa-base, -25.1\% for fine-tuned RoBERTa, and -25.1\% for GPT-3.5 Turbo. SiEBERT, on the other hand, maintains similar performance for both negative and positive reviews, with comparable declines near neutral ratings. This consistency makes it not only the best-performing model but also the most stable across sentiment extremes.
 
 \begin{figure}
   \centering
   \includegraphics[width=\textwidth]{accuracy_vs_ratings.png}
   \caption{Accuracy by rating}
-  \label{fig:roberta-accuracy-ratings}
+  \label{fig:accuracy-ratings}
 \end{figure}
+
+This sheds a new light on the effects of fine-tuning. While it improved performance on negative reviews, it reduced it to a larger extent on positive ones. As a result, fine-tuning made the model more consistent, though not better overall. Regarding the GPT model, providing more positive examples than negative one in the prompt could have helped balance its performance.
 
 \subsubsection{By review length}
 
-Similar observations emerge: SiEBERT maintains stable performance, while other models show a clear downward trend, though the effect of review length is much smaller than that of review valence. This aligns with the observation that truncation had minimal impact, suggesting that the key information in reviews is not heavily dependent on their length.
+Similar observations emerge: SiEBERT maintains stable performance, while other models show a clear downward trend, though the effect of review length is much smaller than that of review valence (see Figure~\ref{fig:accuracy-length}). This aligns with the observation that truncation had minimal impact, suggesting that the key information in reviews is not heavily dependent on their length.
 
 \begin{figure}
   \centering
   \includegraphics[width=\textwidth]{accuracy_vs_wordcount.png}
   \caption{Accuracy by review length}
-  \label{fig:roberta-accuracy-length}
+  \label{fig:accuracy-length}
 \end{figure}
 
 \section{Discussion}
+
+Lorem ipsum
 
 \bibliographystyle{unsrtnat}
 \bibliography{references}
