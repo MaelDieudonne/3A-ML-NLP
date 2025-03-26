@@ -314,14 +314,14 @@ During the first training run, train and test losses improved simultaneously unt
 
 \begin{figure}
   \centering
-  \includegraphics[width=\textwidth]{RoBERTa_learning_curves_1}
+  \includegraphics[width=\textwidth]{figures/RoBERTa_learning_curves_1.png}
   \caption{Loss over training}
   \label{fig:roberta-learning-1}
 \end{figure}
 
 \begin{figure}
   \centering
-  \includegraphics[width=\textwidth]{RoBERTa_learning_curves_2}
+  \includegraphics[width=\textwidth]{figures/RoBERTa_learning_curves_2.png}
   \caption{Performance over training}
   \label{fig:roberta-learning-2}
 \end{figure}
@@ -339,7 +339,9 @@ The overall improvement from fine-tuning is disappointing. While accuracy progre
     \item The model did not converge properly. Indeed, 20 epochs seems to be quite a lot for fine-tuning, as typical values range between 3-5 epochs. However, the learning rate was relatively high, and warm-up steps were included, which makes that behavior somewhat perplexing (for reference, the values mentioned in the SOTA article for fine-tuning RoBERTa are 5 epochs with \texttt{lr=1e-6} and \texttt{weight\_decay=0.01} \citep{csanady_llambert_2024}). Maybe the model got stuck in a local minimum.
 \end{itemize}
 
-I am unsure what else could have been done. I have reviewed many tutorials on fine-tuning BERT and RoBERTa, but none explicitly addressed its impact on accuracy---especially in comparison to zero-shot classification with optimized prompting. Investigating further was not possible due to the high computational cost. Perhaps fine-tuning RoBERTa \textit{effectively} is harder than it seems.
+I am unsure what else could have been done. I have reviewed many tutorials on fine-tuning BERT and RoBERTa, but none explicitly addressed its impact on accuracy---especially in comparison to zero-shot classification with optimized prompting. Investigating further was not possible due to the high computational cost. Perhaps fine-tuning RoBERTa \textit{effectively} is harder than it seems 
+\footnote{I realized too late that there was a way to significantly speed up training. When the parameters of the base model are frozen, it generates the same embeddings regardless of the training process. So, instead of performing a full forward pass at each epoch, it's possible to feed the input to the base model during preprocessing, store the resulting embeddings, and use them directly for fine-tuning. This approach should reduce computation time to just a few minutes per epoch, as the only remaining task would be to fit a simple neural network on the single token (CLS) for each sequence. Curiously, I found no mention of this trick during my research.}
+.
 
 \subsection{Performances}
 
@@ -374,7 +376,7 @@ A clear drop in performance is evident for ratings closer to neutral, as expecte
 
 \begin{figure}
   \centering
-  \includegraphics[width=\textwidth]{accuracy_vs_ratings.png}
+  \includegraphics[width=\textwidth]{figures/accuracy_vs_ratings.png}
   \caption{Accuracy by rating}
   \label{fig:accuracy-ratings}
 \end{figure}
@@ -385,7 +387,7 @@ Similar observations emerge: SiEBERT maintains stable performance, while other m
 
 \begin{figure}
   \centering
-  \includegraphics[width=\textwidth]{accuracy_vs_wordcount.png}
+  \includegraphics[width=\textwidth]{figures/accuracy_vs_wordcount.png}
   \caption{Accuracy by review length}
   \label{fig:accuracy-length}
 \end{figure}
