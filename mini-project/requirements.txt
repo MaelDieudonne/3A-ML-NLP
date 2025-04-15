@@ -1,4 +1,5 @@
 emoji
+enlighten
 ipywidgets
 matplotlib
 numpy

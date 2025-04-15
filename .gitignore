@@ -15,4 +15,5 @@
 
 .DS_Store
 
-mini-project/data/
+mini-project/data
+mini-project/data/output/preds

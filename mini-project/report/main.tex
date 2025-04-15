@@ -32,6 +32,7 @@
 \usepackage{graphicx}
 \usepackage{amsmath}
 \usepackage{multirow}
+\usepackage{listings}
 
 
 \title{Sentiment Analysis on Movie Reviews [Mini]}
@@ -55,15 +56,18 @@ The dataset in question, published in 2011, consists of 50,000 IMDb movie review
 
 Current SOTA models on this dataset are fine-tuned encoders, but their performance seems to have reached a plateau. Replicating these models would require excessive computational resources. Instead, I have chosen to investigate an alternative explanation: that this plateauing is due to limitations within the dataset itself.
 
-I compared the performances of 4 models: 3 based on RoBERTa (the base model, my own fine-tuned version trained on the IMDb dataset, and a SOTA model fine-tuned specifically for sentiment analysis) and GPT-3.5 Turbo. All models exhibit a significant drop in accuracy for reviews with ratings of 4 and 7. Combined with a cursory examination of the dataset, this suggests that ratings may not be an optimal proxy for the sentiment expressed in movie reviews. If so, this could introduce noise into the true labels, making perfect prediction inherently unattainable.
+I compared the performance of four models: three based on RoBERTa (the base model for zero-shot classification, my own fine-tuned version trained on the IMDb dataset, and a SOTA model fine-tuned specifically for sentiment analysis) and GPT-3.5 Turbo.
+
+In selecting these models, I explored two key factors: the impact of prompt design on zero-shot classification, and the influence of classifier head architecture on fine-tuning performance. The results show that while prompt engineering can significantly boost performance, modifying the classifier head yields comparatively limited gains.
+
+All models exhibit a significant drop in accuracy for reviews with ratings of 4 and 7. Combined with a cursory examination of the dataset, this suggests that ratings may not be an optimal proxy for the sentiment expressed in movie reviews. If so, this could introduce noise into the true labels, making perfect prediction inherently unattainable.
+
 \end{abstract}
 
 
 \section{Introduction}
 
-Sentiment analysis seeks to understand the subjectivity expressed in written documents. Opinion and views are often used interchangeably with sentiment in the literature, in contrast to factual statements \citep{munezero_are_2014}.
-
-Sentiment analysis has become an active research area with the advent of Web 2.0, offering people numerous opportunities to express themselves in a publicly traceable manner \citep{stine_sentiment_2019}. Various stakeholders have a vested interest in their opinions:
+Sentiment analysis seeks to understand the subjectivity expressed in written documents. Opinion and views are often used interchangeably with sentiment in the literature, in contrast to factual statements \citep{munezero_are_2014}. Sentiment analysis has become an active research area with the advent of Web 2.0, offering people numerous opportunities to express themselves in a publicly traceable manner \citep{stine_sentiment_2019}. Various stakeholders have a vested interest in their opinions:
 \begin{itemize}
     \item \textbf{Marketing departments}, seeking to understand brand perception and consumer opinions about products, both in absolute terms and relative to competitors.
     \item \textbf{Customer service teams}, identifying key factors contributing to customer satisfaction or dissatisfaction.
@@ -184,32 +188,29 @@ I use zero-shot classification with the base RoBERTa model through a simple Hugg
 
 \subsubsection{Fine-tuned RoBERTa on the IMDb dataset}
 
-I used a custom classification head with… 
-\begin{itemize}
-    \item A dense layer mapping RoBERTa output to a hidden space of similar size (making for \( 1024*1024+1024=1,049,600 \) trainable parameters)
-	\item A drop-out layer with a rate of 0.1 to prevent overfitting
-	\item An activation layer with GELU (same as RoBERTa) to introduce non-linearities
-	\item A normalization layer (making for \( 1024*2=2,048 \) trainable parameters)
-	\item A dense layer reducing the hidden space dimension by a factor 2 (making for \(1024*512+512=524,800\) trainable parameters)
-	\item Another dropout layer with the same rate
-	\item A final dense layer projecting the hidden space in 2 dimension, corresponding to binary outcomes (making for \(512*2+2=1,026\) trainable parameters)
-\end{itemize}
-This classification head has 1,577,474 trainable parameters in total, compared with 354,315,266 parameters in RoBERTa-large. It is applied to the \texttt{[CLS]} token, which marks the beginning of input sequences and serves as an embedding for their entirety
+The standard fine-tuning approach freezes the base model's parameters (354,315,266 for RoBERTa-large) to preserve the knowledge gained during pretraining and reduce computational overhead. This setup allows for an elegant optimization: the dataset only needs to pass through the base model once to generate embeddings, after which a classifier can be trained directly on them, eliminating the need for full forward passes at each epoch. Surprisingly, despite extensive reading on fine-tuning of BERT models, I never saw that trick mentioned. Yet, it is a game changer. In my case, this reduced the computation time per epoch from 1 hour to just 1 second, revealing that 99.97\% of the computation time was previously wasted regenerating embeddings rather than actually training the classifier. Indeed, the task shifts from tuning an LLM to simply fitting a classifier on fixed embeddings: the LLM complexity effectively disappears.
+
+I used this trick to compare several classification heads of increasing complexity---a topic I was also surprised to discover as underexplored. The configurations I tested were the following.
+\begin{enumerate}
+    \item \textbf{Two dense layers}, the first mapping the model output to a hidden space of the same (embedding) dimension, the second projecting back to a binary space (this corresponds to the default head RoBERTa-large, totaling $(1024+1)*1024+(1024+1)*2=1,051,650$ trainable parameters).
+    \item \textbf{Three dense layers}, the first expanding the model output to a hidden space twice as large (2048), the second reducing it to an intermediate dimension (512), and the last projecting to a binary space (making for $(1024+1)*2048+(2048+1)*512+(512+1)*2=3,149,314$ trainable parameters).
+    \item With a SiLU \textbf{activation layer} after the first dense layer.
+    \item With a \textbf{normalization layer} before the activation layer (adding $2048*2=4096$ trainable parameters for a total of $3,149,314$).
+    \item With 2 \textbf{dropout layers}, one placed before the normalization layer and the other before the last dense layer, both using a drop-out rate of .
+    \item With a \textbf{residual connection} after the activation layer.
+\end{enumerate}
+
+These classification heads were applied to the \texttt{[CLS]} token, which marks the beginning of the input sequences and serves as an embedding for their entirety 
 \footnote{I have tried applying it to the whole input sequence, pooling tokens through their mean or max, on a subset of reviews: the performance were worse.}
 .
 
-Parameters from the base model were frozen to preserve the knowledge acquired during pretraining and avoid excessive computation times. The fine-tuning was conducted with the following settings:
-\begin{itemize}
-    \item 12 epochs, with performance evaluation on the entire test sample after each epoch to detect overfitting as soon as possible.
-	\item An \texttt{AdamW} optimizer with a learning rate of 1e-4, \texttt{weight\_decay} of 0.03, and \texttt{epsilon} set to 1e-6.
-    \item A cosine learning rate scheduler with 10\% warmup steps.
-\end{itemize}
+The initial embedding was performed with a \texttt{batch\_size} of 250. The models were trained during 300 epochs. A relatively high learning rate of $10^-3$ was used in combination with a cosine learning rate scheduler, featuring a 10\% warm-up phase. This setup was designed to ensure stable convergence and to maximize the performance potential of each model.
 
 \subsubsection{SOTA fine-tuned RoBERTa for sentiment analysis}
 
 To assess the effectiveness of my fine-tuning, I compared it not only to the baseline performance but also to the current SOTA fine-tuned RoBERTa for sentiment analysis, which is SiEBERT \citep{hartmann_more_2023}. Its architecture is not specified, as the authors do not describe it and have not released their code. It is unclear whether SiEBERT uses a custom classification head or the default untrained head provided by RoBERTa, which consists of two dense layers (the first mapping to a hidden space of the same size as the RoBERTa output, the second to a binary space). The training corpus is also unspecified; the authors only mention using all publicly available two-class sentiment datasets they could identify, excluding their training subset.
 
-SiEBERT is available in a HuggingFace pipeline, which I used.
+SiEBERT is available in a \href{https://huggingface.co/siebert/sentiment-roberta-large-english}{HuggingFace pipeline}, which I used.
 
 \subsubsection{GPT 3.5 turbo}
 
@@ -267,8 +268,6 @@ The reviews are highly polarized, with nearly half of the dataset consisting of 
 The initial run with \enquote{positive} and \enquote{negative} as candidate labels yielded relatively low accuracy. To improve performance, I experimented with more informative candidate labels. The best results were achieved using \enquote{good movie} and \enquote{bad movie} as labels, which resulted in an improvement of nearly 7 percentage points in accuracy compared to the \enquote{positive} and \enquote{negative} labels (see Table~\ref{tab:labels_zero_shot}).
 
 \begin{table}
-  \caption{Performance of various candidate labels for zero-shot classification with RoBERTa}
-  \label{tab:labels_zero_shot}
   \centering
   \begin{tabular}{lc}
     \toprule
@@ -282,6 +281,9 @@ The initial run with \enquote{positive} and \enquote{negative} as candidate labe
     good movie / bad movie & 0.91708 \\
     \bottomrule
   \end{tabular}
+  \vspace{0.5em}
+  \caption{Performance of various candidate labels for zero-shot classification with RoBERTa}
+  \label{tab:labels_zero_shot}
 \end{table}
 
 \subsection{Truncation}
@@ -289,8 +291,6 @@ The initial run with \enquote{positive} and \enquote{negative} as candidate labe
 RoBERTa models have a context length of 512 tokens, but many reviews are longer than that. The easiest solution is to truncate them, even though that means loosing part of the information on their overall sentiment. This truncation can be made from the right, keeping the end beginning of sequences, or from the left, keeping the end of input sequences. This could have significant consequences depending on the order in which information is presented in the reviews (e.g., if users always start with positive aspects, and always end with negative aspects).
 
 \begin{table}
-  \caption{Effects of truncation side on performance}
-  \label{tab:truncation}
   \centering
   \begin{tabular}{lcc}
     \toprule
@@ -300,57 +300,56 @@ RoBERTa models have a context length of 512 tokens, but many reviews are longer 
     SiEBERT & 0.9573 & 0.9559 \\
     \bottomrule
   \end{tabular}
+  \vspace{0.5em}
+  \caption{Effects of truncation side on performance}
+  \label{tab:truncation}
 \end{table}
 
-Left-side truncation yielded marginally better results (using \enquote{good movie} and \enquote{bad movie} as candidate labels for RoBERTa, see Table~\ref{tab:truncation}). This could be explained by the tendency of some users to summarize their sentiment at the end of their reviews: such summaries would be lost with right-truncation, erasing important information. Although the overall effect is really tenuous, I retained left-side truncation for the fine-tuned RoBERTa model. It was also used in the previous comparison between candidate labels.
+Left-side truncation yielded marginally better results (using \enquote{good movie} and \enquote{bad movie} as candidate labels for RoBERTa, see Table~\ref{tab:truncation}). This could be explained by the tendency of some users to summarize their sentiment at the end of their reviews: such summaries would be lost with right-truncation, erasing important information. Although the overall effect is really tenuous, the left-hand side truncation was retained for the fine-tuned RoBERTa model. It was also used in the previous comparison between candidate labels.
 
 \subsection{Fine-tuning}
 
-It was done on a MacBook Pro with an M2 Max equipped with 38 GPU cores and 64 GB of shared memory, using the MPS backend of PyTorch. Its performance significantly outpaced the 16 GB Tesla T4 available in the Datalab. Fine-tuning took approximately 1 hour per epoch (inference time was obviously much lower but still notable: zero-shot classification with RoBERTa took about 30 minutes, sentiment analysis with SiEBERT about 20 minutes). 
+It was done on a MacBook Pro with an M2 Max equipped with 38 GPU cores and 64 GB of shared memory, using the MPS backend of PyTorch, whose performance significantly outpaced the 16 GB Tesla T4 available in the Datalab or Google Colab.
 
-During the first training run, train and test losses improved simultaneously until the final (12\textsuperscript{th}) epoch. I then extended the training to 20 epochs, as the model was still learning. Although test loss continued to decrease, the performance gains were clearly plateauing, suggesting that further training would likely yield negligible improvements (see Figure~\ref{fig:roberta-learning-1} 
-\footnote{The behavior of the batch test loss can be attributed to the fact that test batches were not shuffled, unlike the training batches. It is quite obvious that some batches are more difficult to classify than others. However, since this only affects the validation stage, it does not interfere with the training process. What is interesting, nonetheless, is that the difference between test batches tends to grow with each epoch, as if the model was improving for certain batches while plateauing on others.}
-). As a result, I decided to stop training at that point.
+The effect of training is notable for accuracy and classification error 
+\footnote{Which reflects the separation between predicted classes, that is, the confidence of the model in its own predictions. Classification error is defined as the average difference between the highest possible probability (\( =1 \)) and the highest predicted probability of each datapoint (so the more certain are the label assignments, the closer \( E \) gets to 0): $E = \frac{1}{N} \sum_{i=1}^{N} (1 - P_{\text{max},i})$.}
+(see Figure~\ref{fig:RoBERTa_learning_curves}). Overall, all models perform similarly, with differences in accuracy appearing only in the third decimal place (see Table~\ref{tab:roberta_ft}). The best model is only 0.467\% more accurate than the worst model. There seems to be a clear performance ceiling at around 0.938 accuracy. No matter how many runs or specifications I tried---including exploratory tests not presented here regarding hidden size and dropout rates---I could never exceed this value. This suggests that the model’s ability to learn beyond pre-training is limited, at least with the small sample I have here.
+
+\begin{table}
+  \centering
+  \begin{tabular}{ccccc}
+    \toprule
+    \textbf{Model type} & \textbf{Parameters} & \textbf{Best epoch} & \textbf{Accuracy} & \textbf{Classification error} \\
+    \midrule
+    1 & 1,051,650 & 297 & 0.9366 & 0.0649 \\
+    2 & 3,149,314 & 298 & 0.9374 & 0.0644 \\
+    3 & 3,149,314 & 294 & 0.9379 & 0.0608 \\
+    4 & 3,153,410 & 72 & 0.9334 & 0.0609 \\
+    5 & 3,153,410 & 74 & 0.9338 & 0.0634 \\
+    6 & 3,153,410 & 129 & 0.9353 & 0.0513 \\
+    \bottomrule
+  \end{tabular}
+  \vspace{0.5em}
+  \caption{Performance of Fine-tuned RoBERTa models}
+  \label{tab:roberta_ft}
+\end{table}
+
+Although the architecture of the classifier head has limited influence on performance, it still affects the results. The three most complex models are the quickest to converge but also the least performant. The best performing model is relatively simple, with three dense layers and one activation layer. It shows a notable improvement of 2 percentage points in accuracy compared to the best-performing zero-shot labels with the base models, and a smaller improvement of 0.0007 percentage points compared to the default classification head.
 
 \begin{figure}
   \centering
-  \includegraphics[width=\textwidth]{figures/RoBERTa_learning_curves_1.png}
-  \caption{Loss over training}
-  \label{fig:roberta-learning-1}
+  \includegraphics[width=\textwidth]{figures/RoBERTa_learning_curves.png}
+  \caption{Training Performance of Model 3}
+  \label{fig:RoBERTa_learning_curves}
 \end{figure}
-
-\begin{figure}
-  \centering
-  \includegraphics[width=\textwidth]{figures/RoBERTa_learning_curves_2.png}
-  \caption{Performance over training}
-  \label{fig:roberta-learning-2}
-\end{figure}
-
-The effect of training is notable on accuracy, but also on classification error, which reflects the separation between predicted classes, that is, the model confidence in its own predictions (see Figure~\ref{fig:roberta-learning-2}). Classification error is defined as the average difference between the highest possible probability (\( =1 \)) and the highest predicted probability of each datapoint (so the more certain are the label assignments, the closer \( E \) gets to 0):
-
-\[
-E = \frac{1}{N} \sum_{i=1}^{N} (1 - P_{\text{max},i})
-\]
-
-The overall improvement from fine-tuning is disappointing. While accuracy progresses significantly during training—from 0.5 after the first epoch (equivalent to random guessing, as the dataset is balanced) to 0.9152 after the 20\textsuperscript{th} epoch—it still falls short of the performance achieved by the base model with zero-shot classification, which is already at 0.9158. Moreover, it remains far below the performance of SiEBERT (0.9573) and the SOTA model (0.9668). Several explanations can be envisioned.
-\begin{itemize}
-    \item The IMDb dataset is too small. Indeed, SiEBERT and the SOTA model are fine-tuned on bigger datasets. But it remains puzzling that even 20 epochs of fine-tuning does not yield better performance than the base model.
-    \item My classification head is inadequate, possibly too complex. I tested an alternative model inspired by RoBERTa’s default classification head, consisting of only 2 dense layers with a hidden size of 512. However, the performances of this model were notably worse after 12 epochs (0.8405 accuracy vs. 0.8841 for the original model, and 0.4195 vs. 0.2735 for classification error).
-    \item The model did not converge properly. Indeed, 20 epochs seems to be quite a lot for fine-tuning, as typical values range between 3-5 epochs. However, the learning rate was relatively high, and warm-up steps were included, which makes that behavior somewhat perplexing (for reference, the values mentioned in the SOTA article for fine-tuning RoBERTa are 5 epochs with \texttt{lr=1e-6} and \texttt{weight\_decay=0.01} \citep{csanady_llambert_2024}). Maybe the model got stuck in a local minimum.
-\end{itemize}
-
-I am unsure what else could have been done. I have reviewed many tutorials on fine-tuning BERT and RoBERTa, but none explicitly addressed its impact on accuracy---especially in comparison to zero-shot classification with optimized prompting. Investigating further was not possible due to the high computational cost. Perhaps fine-tuning RoBERTa \textit{effectively} is harder than it seems 
-\footnote{I realized too late that there was a way to significantly speed up training. When the parameters of the base model are frozen, it generates the same embeddings regardless of the training process. So, instead of performing a full forward pass at each epoch, it's possible to feed the input to the base model during preprocessing, store the resulting embeddings, and use them directly for fine-tuning. This approach should reduce computation time to just a few minutes per epoch, as the only remaining task would be to fit a simple neural network on the single token (CLS) for each sequence. Curiously, I found no mention of this trick during my research.}
-.
 
 \subsection{Performances}
 
-I have introduced the performance of all models except GPT-3.5 Turbo (see Table~\ref{tab:perfs_by_sentiment}). Its accuracy falls between zero-shot classification with optimized prompting and SiEBERT, highlighting that despite its capabilities and the use of advanced prompting techniques, specialized encoders can still outperform it. It would have been valuable to explore alternative prompt engineering strategies and test other GPT models. However, this was impractical due to the cost and the API's slow speed--—averaging 8 seconds per call, resulting in over 55 hours to process the entire dataset.
-
+All models achieve over 90\% accuracy, but none approaches the SOTA performance of 96.68\% (see Table~\ref{tab:perfs_by_sentiment}). Zero-shot classification with RoBERTa Large and optimized prompting performs the worst---unsurprisingly, as it is the most generic model. The performance of GPT-3.5 Turbo falls between the two RoBERTa models, highlighting that despite its capabilities and the use of advanced prompting techniques, specialized encoders can still outperform it 
+\footnote{It would have been valuable to explore alternative prompt engineering strategies and to test other GPT models. However, this was impractical due to the cost and the API’s slow speed---averaging 8 seconds per call, which would have resulted in over 55 hours to process the entire dataset.}
+. The best-performing models are fine-tuned for sentiment analysis. The difference between my fine-tuned RoBERTa and SiEBERT reflects the fact that SiEBERT was fine-tuned on a much larger dataset than IMDb reviews.
 
 \begin{table}
-  \caption{Performances of each model}
-  \label{tab:perfs_by_sentiment}
   \centering
   \begin{tabular}{lccc}
     \toprule
@@ -358,19 +357,20 @@ I have introduced the performance of all models except GPT-3.5 Turbo (see Table~
     \cmidrule{2-3}
     & Negative & Positive \\
     \midrule
-    RoBERTa fine-tuned & 0.8926 & 0.9378 & 0.9152 \\
     RoBERTa base & 0.8710 & 0.9631 & 0.9171 \\
     GPT & 0.9623 & 0.8978 & 0.9300 \\
+    RoBERTa fine-tuned & 0.9346 & 0.9411 & 0.9379 \\
     SiEBERT & 0.9520 & 0.9626 & 0.9573 \\
     \bottomrule
   \end{tabular}
+  \vspace{0.5em}
+  \caption{Performances of each model}
+  \label{tab:perfs_by_sentiment}
 \end{table}
 
 \subsubsection{By ratings}
 
-A clear drop in performance is evident for ratings closer to neutral, as expected (see Figure~\ref{fig:accuracy-ratings}). However, the models exhibit notably different behaviors. The accuracy of RoBERTa-base, fine-tuned RoBERTa, and GPT-3.5 Turbo varies with the valence of reviews. RoBERTa-base and fine-tuned RoBERTa perform significantly better on positive reviews than on negative ones, whereas GPT-3.5 Turbo shows the opposite trend, excelling on negative reviews. These models also experience the largest performance declines on their weaker side: -31.9\% for RoBERTa-base, -25.1\% for fine-tuned RoBERTa, and -25.1\% for GPT-3.5 Turbo. SiEBERT, on the other hand, maintains similar performance for both negative and positive reviews, with comparable declines near neutral ratings. This consistency makes it not only the best-performing model but also the most stable across sentiment extremes 
-\footnote{This sheds a new light on the effects of fine-tuning. While it improved performance on negative reviews, it reduced it to a larger extent on positive ones. As a result, fine-tuning made the model more consistent, though not better overall.}
-\textsuperscript{,}
+A clear drop in performance is evident for ratings closer to neutral, as expected (see Figure~\ref{fig:accuracy-ratings}). However, the models exhibit notably different behaviors. The accuracy of RoBERTa-base and GPT-3.5 Turbo varies with the valence of reviews: RoBERTa-base performs significantly better on positive reviews than on negative ones, whereas GPT-3.5 Turbo shows the opposite trend, excelling on negative reviews. These models also experience the largest performance declines on their weaker side: -31.9\% for RoBERTa-base and -25.1\% for GPT-3.5 Turbo. Fine-tuned RoBERTa models, on the other hand, maintains similar performance for both negative and positive reviews, with comparable declines near neutral ratings. This consistency makes them not only the best-performing models but also the most stable across sentiment extremes 
 \footnote{Regarding the GPT model, providing more positive examples than negative one in the prompt could have helped balance its performance.}
 .
 
@@ -383,7 +383,7 @@ A clear drop in performance is evident for ratings closer to neutral, as expecte
 
 \subsubsection{By review length}
 
-Similar observations emerge: SiEBERT maintains stable performance, while other models show a clear downward trend, though the effect of review length is much smaller than that of review valence (see Figure~\ref{fig:accuracy-length}). This aligns with the observation that truncation had minimal impact, suggesting that the key information in reviews is not heavily dependent on their length.
+Slightly different observations emerge: SiEBERT maintains stable performance, while other models show a clear downward trend, though the effect of review length is much smaller than that of review valence (see Figure~\ref{fig:accuracy-length}). This aligns with the observation that truncation had minimal impact, suggesting that the key information in reviews is not heavily dependent on their length.
 
 \begin{figure}
   \centering
